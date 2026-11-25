@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Host Database</title>
+<style>
+  :root{
+    --bg:#f3f5f9; --card:#ffffff; --ink:#18202f; --muted:#5a6478; --line:#dce1ea;
+    --brand:#1f5eff; --brand-d:#1748c9; --brand-bg:#e8efff;
+    --green:#0f7a46; --green-bg:#e2f5eb; --red:#b42318; --red-bg:#fdeceb;
+    --amber:#8a5300; --amber-bg:#fff3d9; --grey-bg:#eceff3; --radius:14px;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 2px 8px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.45}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:var(--brand)}
+  .wrap{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+  [hidden]{display:none !important}
+
+  /* Header */
+  header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:18px}
+  .title h1{margin:0;font-size:28px;letter-spacing:-.01em}
+  .title p{margin:2px 0 0;color:var(--muted);font-size:15px}
+  .top-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .who{color:var(--muted);font-size:14px;font-weight:600}
+
+  .btn{border:1px solid var(--line);background:#fff;padding:11px 16px;border-radius:10px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:44px}
+  .btn:hover{background:#f7f8fb}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:var(--brand-d)}
+  .btn.danger{color:var(--red);border-color:#f3c5c1}
+  .btn.danger:hover{background:var(--red-bg)}
+  .btn.small{padding:7px 12px;min-height:36px;font-size:14px}
+
+  /* Login */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px 14px}
+  .login-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:420px;padding:28px 26px}
+  .login-card h1{margin:0 0 4px;font-size:24px}
+  .login-card p{margin:0 0 18px;color:var(--muted);font-size:15px}
+  .login-card .field{margin-bottom:14px}
+  .login-err{background:var(--red-bg);color:var(--red);border:1px solid #f3c5c1;border-radius:10px;padding:11px 13px;font-weight:600;font-size:15px;margin-bottom:14px}
+  .config-err{background:var(--amber-bg);color:var(--amber);border:1px solid #f2d79c;border-radius:10px;padding:11px 13px;font-weight:600;font-size:15px;margin-bottom:14px}
+
+  /* Summary */
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);text-align:left;cursor:pointer}
+  .stat:hover{border-color:#b9c4d6}
+  .stat .num{font-size:32px;font-weight:800;line-height:1.1}
+  .stat .lbl{font-size:15px;color:var(--muted);font-weight:600;margin-top:2px}
+  .stat.s-live .num{color:var(--green)}
+  .stat.s-progress .num{color:var(--amber)}
+
+  /* Toolbar */
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+  .search{flex:1 1 260px;position:relative}
+  .search input{width:100%;padding:12px 14px 12px 42px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:17px;min-height:48px}
+  .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.5}
+  .filters{display:flex;flex-wrap:wrap;gap:6px;background:#e6eaf1;padding:4px;border-radius:12px}
+  .filters button{border:0;background:transparent;padding:9px 14px;border-radius:9px;font-weight:600;cursor:pointer;color:var(--muted);min-height:40px}
+  .filters button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+  .selfilter{display:flex;gap:8px;flex-wrap:wrap}
+  .selfilter select{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:600;min-height:44px}
+  .count-line{color:var(--muted);font-weight:600;margin:0 0 14px;font-size:15px}
+
+  /* Cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+  .card-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px;flex:1}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .card h3{margin:0;font-size:20px;line-height:1.25}
+  .contact{color:var(--muted);font-size:15px;margin-top:2px}
+  .addr{color:var(--muted);font-size:15px}
+  .links{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:15px}
+  .links a{text-decoration:none;font-weight:600;word-break:break-all}
+  .tvline{font-weight:600;font-size:15px}
+  .muted{color:var(--muted)}
+  .notes{background:#fbfaf5;border:1px solid #efe9d6;border-radius:9px;padding:9px 11px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+  .card-actions{display:flex;gap:8px;padding:0 18px 16px}
+  .card-actions .btn{flex:1;justify-content:center}
+
+  /* Status pills + company badges */
+  .pill{font-weight:700;font-size:13px;padding:4px 12px;border-radius:999px;white-space:nowrap;text-align:center}
+  .pill.st-new{background:var(--grey-bg);color:var(--muted)}
+  .pill.st-sent{background:#e8efff;color:#1a3fa6}
+  .pill.st-received{background:#c9dbff;color:#123a8f}
+  .pill.st-handyman{background:var(--amber-bg);color:var(--amber)}
+  .pill.st-up{background:#ffe1a8;color:#7a4a00}
+  .pill.st-live{background:var(--green-bg);color:var(--green)}
+  .cobadge{font-weight:700;font-size:13px;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .cobadge.co-hth{background:var(--brand-bg);color:#1a3fa6}
+  .cobadge.co-wb{background:#f1e8fd;color:#5b21b6}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .typetag{color:var(--muted);font-size:14px;font-weight:600;text-transform:capitalize}
+
+  /* Handyman box */
+  .hmbox{background:#f6f7fa;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:15px}
+  .hmbox .hmdeal{font-weight:700}
+  .hmbox a{text-decoration:none;font-weight:600}
+
+  /* Card media */
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+  .thumbs a{display:block;line-height:0}
+  .thumbs img{width:88px;height:88px;object-fit:cover;border-radius:10px;display:block;border:1px solid var(--line)}
+  .vid video{width:100%;border-radius:10px;display:block;background:#000}
+
+  .empty-state{grid-column:1/-1;text-align:center;padding:50px 20px;background:#fff;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted)}
+  .empty-state strong{display:block;color:var(--ink);font-size:19px;margin-bottom:6px}
+
+  footer.note{margin-top:28px;color:var(--muted);font-size:14px;text-align:center}
+  .errbar{background:var(--red-bg);color:var(--red);border:1px solid #f3c5c1;padding:12px 14px;border-radius:10px;margin-bottom:14px;font-weight:600}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,20,30,.55);display:none;align-items:flex-start;justify-content:center;padding:30px 14px;overflow-y:auto;z-index:50}
+  .overlay.open{display:flex}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:760px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;border-radius:16px 16px 0 0;z-index:2}
+  .modal-head h2{margin:0;font-size:22px}
+  .x{border:0;background:#f1f3f7;width:40px;height:40px;border-radius:10px;font-size:22px;cursor:pointer}
+  .modal-body{padding:20px 22px;display:grid;gap:18px}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line);position:sticky;bottom:0;background:#fff;border-radius:0 0 16px 16px}
+  .modal-foot .spacer{margin-right:auto}
+  fieldset{border:1px solid var(--line);border-radius:12px;padding:14px 16px 16px;margin:0}
+  legend{font-weight:800;font-size:15px;padding:0 6px;color:var(--brand-d);text-transform:uppercase;letter-spacing:.04em}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-weight:700;font-size:16px}
+  .field .hint{font-size:13px;color:var(--muted);font-weight:400}
+  .field input,.field select,.field textarea{border:1px solid #c9d0dc;border-radius:10px;padding:11px 12px;font-size:16px;background:#fff;min-height:46px;width:100%}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:3px solid #c9d8ff;border-color:var(--brand)}
+  .field input:disabled{background:#f2f4f7;color:#98a1b2}
+  textarea{min-height:90px;resize:vertical}
+  .req{color:var(--red)}
+
+  /* Editor media */
+  .mediabox{border:1px dashed rgba(127,127,127,.55);border-radius:10px;padding:12px 14px}
+  .mediabox > label{font-weight:700;font-size:16px}
+  .media-item{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;background:#fbfcfe}
+  .media-item img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block}
+  .media-item video{width:170px;max-width:55%;border-radius:8px;background:#000;display:block}
+  .media-item .mi-body{flex:1;font-size:14px;word-break:break-all;min-width:0}
+  .media-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .media-add input[type=file]{flex:1;min-width:200px}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#18202f;color:#fff;padding:12px 18px;border-radius:10px;font-weight:600;opacity:0;transition:.25s;z-index:80;pointer-events:none;max-width:90vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:600px){
+    .wrap{padding:14px 12px 50px}
+    .title h1{font-size:24px}
+    .top-actions{width:100%}
+    .top-actions .btn{flex:1;justify-content:center}
+    .grid{grid-template-columns:1fr}
+    .row,.row3{grid-template-columns:1fr}
+    .overlay{padding:0}
+    .modal{border-radius:0;min-height:100vh}
+    .modal-head,.modal-foot{border-radius:0}
+    .filters{width:100%}
+    .filters button{flex:1}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-wrap" id="loginView">
+  <form class="login-card" id="loginForm" novalidate>
+    <h1>Host Database</h1>
+    <p>Sign in to see the shared, live board. Everyone who signs in sees the same data.</p>
+    <div class="config-err" id="configErr" hidden>This board isn't connected yet. The Supabase project URL and anon key still need to be pasted into this file (the two constants at the top of the script) before anyone can sign in.</div>
+    <div class="login-err" id="loginErr" hidden></div>
+    <div class="field">
+      <label for="liEmail">Email</label>
+      <input id="liEmail" type="email" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label for="liPassword">Password</label>
+      <input id="liPassword" type="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn primary" id="loginBtn" style="width:100%;justify-content:center">Sign In</button>
+  </form>
+  <form class="login-card" id="pwForm" hidden novalidate>
+    <h1>Set your new password</h1>
+    <p>You came in from a password-reset link. Choose the password you'll use for this board from now on.</p>
+    <div class="login-err" id="pwErr" hidden></div>
+    <div class="field">
+      <label for="pwNew">New password</label>
+      <input id="pwNew" type="password" autocomplete="new-password" required>
+    </div>
+    <div class="field">
+      <label for="pwConfirm">Type it again</label>
+      <input id="pwConfirm" type="password" autocomplete="new-password" required>
+    </div>
+    <button type="submit" class="btn primary" id="pwBtn" style="width:100%;justify-content:center">Save password</button>
+  </form>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="wrap" id="appView" hidden>
+  <header class="top">
+    <div class="title">
+      <h1>Host Database</h1>
+      <p>Every host location — TVs, handymen, and install progress in one shared board.</p>
+    </div>
+    <div class="top-actions">
+      <span class="who" id="whoami"></span>
+      <button class="btn primary" id="addBtn">＋ Add Host</button>
+      <button class="btn" id="refreshBtn">↻ Refresh</button>
+      <button class="btn" id="signOutBtn">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="errbar" id="appErr" hidden></div>
+
+  <section class="summary">
+    <button class="stat" data-jump="all"><div class="num" id="sTotal">0</div><div class="lbl">Total hosts</div></button>
+    <button class="stat s-live" data-jump="TV Live"><div class="num" id="sLive">0</div><div class="lbl">TVs live</div></button>
+    <button class="stat s-progress" data-jump="all"><div class="num" id="sProgress">0</div><div class="lbl">Still in progress</div></button>
+  </section>
+
+  <section class="toolbar">
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="search" id="search" placeholder="Search business, city, or contact…" aria-label="Search hosts">
+    </div>
+    <div class="selfilter">
+      <select id="companyFilter" aria-label="Filter by company">
+        <option value="all">All companies</option>
+        <option>Hometown Heroes</option>
+        <option>Wavebuilders</option>
+      </select>
+    </div>
+  </section>
+  <div class="filters" role="group" aria-label="Status filter" id="statusFilters" style="margin-bottom:12px">
+    <button data-status="all" class="on">All statuses</button>
+    <button data-status="New Host">New Host</button>
+    <button data-status="TV Sent">TV Sent</button>
+    <button data-status="TV Received">TV Received</button>
+    <button data-status="Found Handyman">Found Handyman</button>
+    <button data-status="TV Up">TV Up</button>
+    <button data-status="TV Live">TV Live</button>
+  </div>
+  <p class="count-line" id="countLine"></p>
+
+  <main class="grid" id="grid"></main>
+
+  <footer class="note">Data lives in the shared Supabase database — changes anyone makes show up for everyone.</footer>
+</div>
+
+<!-- ============ ADD / EDIT MODAL ============ -->
+<div class="overlay" id="formOverlay">
+  <form class="modal" id="form" novalidate>
+    <div class="modal-head">
+      <h2 id="formTitle">Add Host</h2>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <fieldset>
+        <legend>Host</legend>
+        <div class="row">
+          <div class="field"><label for="fBusiness">Business name <span class="req">*</span></label><input id="fBusiness" required autocomplete="off"></div>
+          <div class="field"><label for="fCompany">Company</label><select id="fCompany"><option>Hometown Heroes</option><option>Wavebuilders</option></select></div>
+        </div>
+        <div class="field" style="margin-top:14px"><label for="fType">Type <span class="hint">(gym, restaurant, cafe, barber shop…)</span></label><input id="fType" autocomplete="off"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Address</legend>
+        <div class="field"><label for="fAddress">Street address</label><input id="fAddress" autocomplete="off"></div>
+        <div class="row3" style="margin-top:14px">
+          <div class="field"><label for="fCity">City</label><input id="fCity" autocomplete="off"></div>
+          <div class="field"><label for="fState">State</label><input id="fState" autocomplete="off"></div>
+          <div class="field"><label for="fZip">ZIP</label><input id="fZip" autocomplete="off"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Contact</legend>
+        <div class="field"><label for="fContact">Contact name</label><input id="fContact" autocomplete="off"></div>
+        <div class="row" style="margin-top:14px">
+          <div class="field"><label for="fPhone">Phone</label><input id="fPhone" type="tel" autocomplete="off"></div>
+          <div class="field"><label for="fEmail">Email</label><input id="fEmail" type="email" autocomplete="off"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>TV &amp; Status</legend>
+        <div class="row3">
+          <div class="field"><label for="fTvCount">Number of TVs</label><input id="fTvCount" type="number" min="0" step="1" inputmode="numeric"></div>
+          <div class="field"><label for="fTvType">TV type</label><select id="fTvType"><option value="">—</option><option>Roku</option><option>Android (Google TV)</option><option>Other</option></select></div>
+          <div class="field"><label for="fTvSize">TV size</label><input id="fTvSize" autocomplete="off" placeholder="55&quot;"></div>
+        </div>
+        <div class="field" style="margin-top:14px"><label for="fStatus">Status</label><select id="fStatus"><option>New Host</option><option>TV Sent</option><option>TV Received</option><option>Found Handyman</option><option>TV Up</option><option>TV Live</option></select></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Handyman</legend>
+        <div class="row">
+          <div class="field"><label for="fHmName">Handyman name</label><input id="fHmName" autocomplete="off"></div>
+          <div class="field"><label for="fHmBusiness">Handyman business</label><input id="fHmBusiness" autocomplete="off"></div>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <div class="field"><label for="fHmPhone">Handyman phone</label><input id="fHmPhone" type="tel" autocomplete="off"></div>
+          <div class="field"><label for="fHmEmail">Handyman email</label><input id="fHmEmail" type="email" autocomplete="off"></div>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <div class="field"><label for="fHmDeal">Deal</label><select id="fHmDeal"><option value="">—</option><option>Barter</option><option>Paid</option></select></div>
+          <div class="field"><label for="fHmAmount">Amount <span class="hint">(when Paid)</span></label><input id="fHmAmount" autocomplete="off" placeholder="$150"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Photos &amp; Video</legend>
+        <div class="mediabox">
+          <label>Photos <span class="hint" style="font-weight:400;color:var(--muted);font-size:13px">— up to 3 pictures of the location / TV</span></label>
+          <div id="photoList"></div>
+          <div class="media-add">
+            <input type="file" id="fPhotoFile" accept="image/*" multiple>
+          </div>
+          <div class="muted" id="photoHint" style="font-size:13px;margin-top:6px"></div>
+        </div>
+        <div class="mediabox" style="margin-top:14px">
+          <label>Video <span class="hint" style="font-weight:400;color:var(--muted);font-size:13px">— 1 short video (up to 50 MB)</span></label>
+          <div id="videoBox"></div>
+          <div class="media-add">
+            <input type="file" id="fVideoFile" accept="video/*">
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="fNotes">Notes</label>
+        <textarea id="fNotes" placeholder="Anything the team should know…"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="spacer"><button type="button" class="btn danger" id="deleteBtn" hidden>🗑 Delete Host</button></span>
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary" id="saveBtn">Save Host</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ================= CONFIG — same Supabase project as the Art Team board ================= */
+  const SUPABASE_URL = "https://esxjqotgyoizclvfhrgr.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzeGpxb3RneW9pemNsdmZocmdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzMTE2NTEsImV4cCI6MjExMDg4NzY1MX0.fQ8-zoAlzjwxOWbcjsY9LVaOfJMVkZz-50K8IMfUEBo";
+  /* ====================================================================================== */
+
+  const CONFIG_OK = SUPABASE_URL !== "PASTE_PROJECT_URL" && SUPABASE_ANON_KEY !== "PASTE_ANON_KEY"
+    && /^https:\/\/.+\.supabase\.co/.test(SUPABASE_URL);
+  let sb = null;
+  if (CONFIG_OK && window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const TABLE = "hosts";
+  const BUCKET = "host-media";
+  const STATUSES = ["New Host", "TV Sent", "TV Received", "Found Handyman", "TV Up", "TV Live"];
+  const STATUS_CLASS = { "New Host":"st-new", "TV Sent":"st-sent", "TV Received":"st-received",
+    "Found Handyman":"st-handyman", "TV Up":"st-up", "TV Live":"st-live" };
+  const MAX_PHOTOS = 3;
+  const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+  /* ---------- State ---------- */
+  let hosts = [];
+  let statusFilter = "all";
+  let companyFilter = "all";
+  let query = "";
+  let editingId = null;
+  let mediaUrls = {};          // storage path -> signed URL cache
+  let formPhotos = [];         // [{kind:"saved", path} | {kind:"new", file, url}]
+  let formOrigPhotos = [];     // photo paths saved on the row when the form opened
+  let formVideo = null;        // {kind:"saved", path} | {kind:"new", file, name} | null
+  let formOrigVideo = "";      // video_path saved on the row when the form opened
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  function toast(msg){
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 3200);
+  }
+  function showAppError(msg){
+    const b = $("appErr");
+    if (!msg) { b.hidden = true; b.textContent = ""; return; }
+    b.hidden = false; b.textContent = msg;
+  }
+
+  function blank(){
+    return { business:"", company:"Hometown Heroes", type:"", address:"", city:"", state:"", zip:"",
+      contact:"", phone:"", email:"", tv_count:1, tv_type:"", tv_size:"", status:"New Host",
+      handyman_name:"", handyman_business:"", handyman_phone:"", handyman_email:"",
+      handyman_deal:"", handyman_amount:"", photos:[], video_path:"", notes:"" };
+  }
+  function normalize(r){
+    const h = { ...blank(), ...r };
+    h.photos = Array.isArray(r.photos) ? r.photos.filter(p => typeof p === "string" && p) : [];
+    h.tv_count = (r.tv_count === null || r.tv_count === undefined) ? 1 : r.tv_count;
+    if (!STATUSES.includes(h.status)) h.status = "New Host";
+    return h;
+  }
+
+  /* ---------- Storage (signed URLs) ---------- */
+  async function signedUrl(path){
+    if (!path) return "";
+    if (mediaUrls[path]) return mediaUrls[path];
+    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(path, 3600);
+    if (error || !data) return "";
+    mediaUrls[path] = data.signedUrl;
+    return data.signedUrl;
+  }
+
+  /* ---------- Card pieces ---------- */
+  function statusPill(s){ return `<span class="pill ${STATUS_CLASS[s] || "st-new"}">${esc(s)}</span>`; }
+  function companyBadge(c){
+    return c === "Wavebuilders"
+      ? `<span class="cobadge co-wb">Wavebuilders</span>`
+      : `<span class="cobadge co-hth">Hometown Heroes</span>`;
+  }
+  function fmtAmount(a){
+    const s = String(a || "").trim();
+    if (!s) return "";
+    return s.startsWith("$") ? s : "$" + s;
+  }
+  function fullAddress(h){
+    const line1 = h.address || "";
+    const line2 = [h.city, h.state].filter(Boolean).join(", ") + (h.zip ? " " + h.zip : "");
+    const full = [line1, line2.trim()].filter(Boolean).join(", ");
+    return full ? `<div class="addr">📍 ${esc(full)}</div>` : "";
+  }
+  function tvLine(h){
+    const parts = [];
+    const n = Number(h.tv_count);
+    if (Number.isFinite(n) && n > 0) parts.push(n + (n === 1 ? " TV" : " TVs"));
+    if (h.tv_type) parts.push(h.tv_type);
+    if (h.tv_size) parts.push(h.tv_size);
+    return parts.length ? `<div class="tvline">📺 ${esc(parts.join(" · "))}</div>` : "";
+  }
+  function handymanHTML(h){
+    if (!h.handyman_name && !h.handyman_business && !h.handyman_deal && !h.handyman_phone) return "";
+    const who = [h.handyman_name, h.handyman_business].filter(Boolean).map(esc).join(" · ");
+    let deal = "";
+    if (h.handyman_deal === "Barter") deal = "Barter";
+    else if (h.handyman_deal === "Paid") deal = "Paid" + (fmtAmount(h.handyman_amount) ? " " + fmtAmount(h.handyman_amount) : "");
+    const phone = h.handyman_phone ? ` · <a href="tel:${esc(String(h.handyman_phone).replace(/[^\d+]/g,""))}">📞 ${esc(h.handyman_phone)}</a>` : "";
+    return `<div class="hmbox">🔧 <strong>${who || "Handyman"}</strong>${deal ? ` — <span class="hmdeal">${esc(deal)}</span>` : ""}${phone}</div>`;
+  }
+  function mediaHTML(h){
+    let out = "";
+    if (h.photos && h.photos.length) {
+      const thumbs = h.photos.map(p => {
+        const url = mediaUrls[p];
+        return url ? `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="Host photo" loading="lazy"></a>` : "";
+      }).join("");
+      if (thumbs) out += `<div class="thumbs">${thumbs}</div>`;
+    }
+    if (h.video_path && mediaUrls[h.video_path]) {
+      out += `<div class="vid"><video src="${esc(mediaUrls[h.video_path])}" controls preload="metadata" playsinline></video></div>`;
+    }
+    return out;
+  }
+
+  function cardHTML(h){
+    const links = [
+      h.phone ? `<a href="tel:${esc(String(h.phone).replace(/[^\d+]/g,""))}">📞 ${esc(h.phone)}</a>` : "",
+      h.email ? `<a href="mailto:${esc(h.email)}">✉️ ${esc(h.email)}</a>` : ""
+    ].join("");
+    return `
+      <article class="card">
+        <div class="card-body">
+          <div class="card-top">
+            <div>
+              <h3>${esc(h.business) || "<span class='muted'>(No name)</span>"}</h3>
+              ${h.contact ? `<div class="contact">Contact: ${esc(h.contact)}</div>` : ""}
+            </div>
+            ${statusPill(h.status)}
+          </div>
+          <div class="badges">${companyBadge(h.company)}${h.type ? `<span class="typetag">${esc(h.type)}</span>` : ""}</div>
+          ${fullAddress(h)}
+          ${links ? `<div class="links">${links}</div>` : ""}
+          ${tvLine(h)}
+          ${handymanHTML(h)}
+          ${mediaHTML(h)}
+          ${h.notes ? `<div class="notes">${esc(h.notes)}</div>` : ""}
+        </div>
+        <div class="card-actions">
+          <button class="btn" data-edit="${h.id}">✏️ Edit</button>
+        </div>
+      </article>`;
+  }
+
+  /* ---------- Filtering + rendering ---------- */
+  function matchHost(h){
+    if (companyFilter !== "all" && h.company !== companyFilter) return false;
+    if (statusFilter !== "all" && h.status !== statusFilter) return false;
+    if (query) {
+      const hay = (h.business + " " + (h.city || "") + " " + (h.contact || "")).toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  }
+
+  function render(){
+    $("sTotal").textContent = hosts.length;
+    $("sLive").textContent = hosts.filter(h => h.status === "TV Live").length;
+    $("sProgress").textContent = hosts.filter(h => h.status !== "TV Live").length;
+    document.querySelectorAll("[data-status]").forEach(b => b.classList.toggle("on", b.dataset.status === statusFilter));
+
+    const list = hosts.filter(matchHost)
+      .sort((a,b) => a.business.localeCompare(b.business, undefined, { sensitivity:"base" }));
+    $("countLine").textContent = `Showing ${list.length} of ${hosts.length} host${hosts.length === 1 ? "" : "s"}`;
+    $("grid").innerHTML = list.length
+      ? list.map(cardHTML).join("")
+      : `<div class="empty-state"><strong>${hosts.length ? "No hosts match." : "No hosts yet."}</strong>${hosts.length ? "Try a different search or filter." : "Click “Add Host” to get started."}</div>`;
+  }
+
+  /* ---------- Data (Supabase) ---------- */
+  async function loadHosts(){
+    showAppError("");
+    const { data, error } = await sb.from(TABLE).select("*").order("business", { ascending: true });
+    if (error) { showAppError("Couldn't load hosts: " + error.message); return; }
+    hosts = (data || []).map(normalize);
+    const paths = [];
+    hosts.forEach(h => { paths.push(...h.photos); if (h.video_path) paths.push(h.video_path); });
+    await Promise.all(paths.map(p => signedUrl(p)));
+    render();
+  }
+
+  /* ---------- Form ---------- */
+  function syncHmAmount(){
+    const paid = $("fHmDeal").value === "Paid";
+    $("fHmAmount").disabled = !paid;
+    if (!paid) $("fHmAmount").value = "";
+  }
+
+  function renderMediaBox(){
+    /* Photos */
+    const pl = $("photoList");
+    pl.innerHTML = formPhotos.map((item, i) => {
+      const url = item.kind === "saved" ? (mediaUrls[item.path] || "") : item.url;
+      const name = item.kind === "saved" ? item.path.split("/").pop() : item.file.name;
+      return `<div class="media-item">
+        ${url ? `<img src="${esc(url)}" alt="">` : ""}
+        <div class="mi-body">${item.kind === "saved" ? "Saved photo" : "New photo — uploads when you save"}<br><span class="muted">${esc(name)}</span></div>
+        <button type="button" class="btn small danger" data-rmphoto="${i}">Remove</button>
+      </div>`;
+    }).join("");
+    $("photoHint").textContent = formPhotos.length >= MAX_PHOTOS
+      ? "You have 3 photos — remove one before adding another."
+      : `${formPhotos.length} of 3 photos. Pick a picture above to add one.`;
+    $("fPhotoFile").disabled = formPhotos.length >= MAX_PHOTOS;
+
+    /* Video */
+    const vb = $("videoBox");
+    if (!formVideo) {
+      vb.innerHTML = `<div class="muted" style="font-size:14px;margin-top:6px">No video saved. Pick a short video below to add one.</div>`;
+    } else if (formVideo.kind === "saved") {
+      const url = mediaUrls[formVideo.path] || "";
+      vb.innerHTML = `<div class="media-item">
+        ${url ? `<video src="${esc(url)}" controls preload="metadata" playsinline></video>` : ""}
+        <div class="mi-body">Saved video<br><span class="muted">${esc(formVideo.path.split("/").pop())}</span></div>
+        <button type="button" class="btn small danger" id="rmVideoBtn">Remove</button>
+      </div>`;
+    } else {
+      vb.innerHTML = `<div class="media-item">
+        <div class="mi-body">New video — uploads when you save<br><span class="muted">${esc(formVideo.name)}</span></div>
+        <button type="button" class="btn small danger" id="rmVideoBtn">Remove</button>
+      </div>`;
+    }
+    const rv = $("rmVideoBtn");
+    if (rv) rv.addEventListener("click", () => { formVideo = null; $("fVideoFile").value = ""; renderMediaBox(); });
+  }
+
+  async function openForm(h){
+    editingId = h ? h.id : null;
+    const d = h || blank();
+    $("formTitle").textContent = h ? "Edit Host" : "Add Host";
+    $("deleteBtn").hidden = !h;
+    $("fBusiness").value = d.business || ""; $("fCompany").value = d.company || "Hometown Heroes";
+    $("fType").value = d.type || "";
+    $("fAddress").value = d.address || ""; $("fCity").value = d.city || "";
+    $("fState").value = d.state || ""; $("fZip").value = d.zip || "";
+    $("fContact").value = d.contact || ""; $("fPhone").value = d.phone || ""; $("fEmail").value = d.email || "";
+    $("fTvCount").value = (d.tv_count === null || d.tv_count === undefined) ? 1 : d.tv_count;
+    $("fTvType").value = d.tv_type || ""; $("fTvSize").value = d.tv_size || "";
+    $("fStatus").value = STATUSES.includes(d.status) ? d.status : "New Host";
+    $("fHmName").value = d.handyman_name || ""; $("fHmBusiness").value = d.handyman_business || "";
+    $("fHmPhone").value = d.handyman_phone || ""; $("fHmEmail").value = d.handyman_email || "";
+    $("fHmDeal").value = d.handyman_deal || ""; $("fHmAmount").value = d.handyman_amount || "";
+    syncHmAmount();
+    $("fNotes").value = d.notes || "";
+    /* Media state */
+    formPhotos = (d.photos || []).map(p => ({ kind:"saved", path:p }));
+    formOrigPhotos = [...(d.photos || [])];
+    formVideo = d.video_path ? { kind:"saved", path:d.video_path } : null;
+    formOrigVideo = d.video_path || "";
+    $("fPhotoFile").value = ""; $("fVideoFile").value = "";
+    await Promise.all([...formOrigPhotos, ...(formOrigVideo ? [formOrigVideo] : [])].map(p => signedUrl(p)));
+    renderMediaBox();
+    openOverlay("formOverlay");
+    setTimeout(() => $("fBusiness").focus(), 50);
+  }
+
+  async function saveForm(e){
+    e.preventDefault();
+    const business = $("fBusiness").value.trim();
+    if (!business) { $("fBusiness").focus(); toast("Please enter a business name."); return; }
+    const tvCountRaw = parseInt($("fTvCount").value, 10);
+    const rec = {
+      business,
+      company: $("fCompany").value,
+      type: $("fType").value.trim(),
+      address: $("fAddress").value.trim(), city: $("fCity").value.trim(),
+      state: $("fState").value.trim(), zip: $("fZip").value.trim(),
+      contact: $("fContact").value.trim(), phone: $("fPhone").value.trim(), email: $("fEmail").value.trim(),
+      tv_count: Number.isFinite(tvCountRaw) ? tvCountRaw : 1,
+      tv_type: $("fTvType").value, tv_size: $("fTvSize").value.trim(),
+      status: $("fStatus").value,
+      handyman_name: $("fHmName").value.trim(), handyman_business: $("fHmBusiness").value.trim(),
+      handyman_phone: $("fHmPhone").value.trim(), handyman_email: $("fHmEmail").value.trim(),
+      handyman_deal: $("fHmDeal").value,
+      handyman_amount: $("fHmDeal").value === "Paid" ? $("fHmAmount").value.trim() : "",
+      notes: $("fNotes").value.trim()
+    };
+
+    $("saveBtn").disabled = true;
+    let error, savedId = editingId;
+    if (editingId) ({ error } = await sb.from(TABLE).update(rec).eq("id", editingId));
+    else {
+      const ins = await sb.from(TABLE).insert(rec).select("id");
+      error = ins.error;
+      if (!error && ins.data && ins.data[0]) savedId = ins.data[0].id;
+    }
+    if (error) { $("saveBtn").disabled = false; toast("Couldn't save: " + error.message); return; }
+    if (!savedId) { $("saveBtn").disabled = false; toast("Saved, but the host ID came back empty — please refresh and check."); return; }
+
+    /* Media: upload new files, delete removed ones, then save paths on the row. */
+    let mediaNote = "";
+    try {
+      const finalPhotos = [];
+      for (let i = 0; i < formPhotos.length; i++) {
+        const item = formPhotos[i];
+        if (item.kind === "saved") { finalPhotos.push(item.path); continue; }
+        const safe = item.file.name.replace(/[^\w.\-]+/g, "_");
+        const path = `hosts/${savedId}/${Date.now()}-${i}-${safe}`;
+        const up = await sb.storage.from(BUCKET).upload(path, item.file, { upsert: false, contentType: item.file.type || undefined });
+        if (up.error) mediaNote += ` (Photo "${item.file.name}" didn't upload: ${up.error.message})`;
+        else finalPhotos.push(path);
+      }
+      const kept = new Set(finalPhotos);
+      const removedPhotos = formOrigPhotos.filter(p => !kept.has(p));
+      if (removedPhotos.length) {
+        const rm = await sb.storage.from(BUCKET).remove(removedPhotos);
+        if (rm.error) mediaNote += " (Couldn't delete a removed photo file: " + rm.error.message + ")";
+        removedPhotos.forEach(p => delete mediaUrls[p]);
+      }
+
+      let finalVideo = "";
+      if (formVideo && formVideo.kind === "saved") finalVideo = formVideo.path;
+      else if (formVideo && formVideo.kind === "new") {
+        if (formVideo.file.size > MAX_VIDEO_BYTES) mediaNote += " (Video skipped — over the 50 MB limit.)";
+        else {
+          const safe = formVideo.file.name.replace(/[^\w.\-]+/g, "_");
+          const path = `hosts/${savedId}/${Date.now()}-video-${safe}`;
+          const up = await sb.storage.from(BUCKET).upload(path, formVideo.file, { upsert: false, contentType: formVideo.file.type || undefined });
+          if (up.error) mediaNote += " (Video didn't upload: " + up.error.message + ")";
+          else finalVideo = path;
+        }
+      }
+      if (formOrigVideo && formOrigVideo !== finalVideo) {
+        const rm = await sb.storage.from(BUCKET).remove([formOrigVideo]);
+        if (rm.error) mediaNote += " (Couldn't delete the old video file: " + rm.error.message + ")";
+        delete mediaUrls[formOrigVideo];
+      }
+
+      const { error: mErr } = await sb.from(TABLE).update({ photos: finalPhotos, video_path: finalVideo }).eq("id", savedId);
+      if (mErr) mediaNote += " (Couldn't save the photo/video list: " + mErr.message + ")";
+    } catch (err) {
+      mediaNote += " (Media problem: " + (err.message || err) + ")";
+    }
+
+    $("saveBtn").disabled = false;
+    closeOverlay("formOverlay");
+    await loadHosts();
+    toast((editingId ? "Changes saved." : "Host added.") + mediaNote);
+  }
+
+  async function deleteHost(){
+    if (!editingId) return;
+    const h = hosts.find(x => x.id === editingId);
+    const name = h ? h.business : "this host";
+    if (!confirm(`Delete "${name}"?\n\nThis removes the host — and its photos and video — from the shared board for everyone. It can't be undone.`)) return;
+    const files = [...(h ? h.photos : []), ...(h && h.video_path ? [h.video_path] : [])];
+    const { error } = await sb.from(TABLE).delete().eq("id", editingId);
+    if (error) { toast("Couldn't delete: " + error.message); return; }
+    if (files.length) {
+      const rm = await sb.storage.from(BUCKET).remove(files);
+      if (!rm.error) files.forEach(p => delete mediaUrls[p]);
+    }
+    closeOverlay("formOverlay");
+    await loadHosts();
+    toast("Host deleted.");
+  }
+
+  /* ---------- Overlays ---------- */
+  function openOverlay(id){ $(id).classList.add("open"); document.body.style.overflow = "hidden"; }
+  function closeOverlay(id){
+    $(id).classList.remove("open");
+    if (!document.querySelector(".overlay.open")) document.body.style.overflow = "";
+  }
+
+  /* ---------- Auth ---------- */
+  function showLogin(){
+    $("appView").hidden = true;
+    $("loginView").hidden = false;
+    $("loginForm").hidden = false;
+    $("pwForm").hidden = true;
+    if (!CONFIG_OK) { $("configErr").hidden = false; $("loginBtn").disabled = true; }
+  }
+  async function enterApp(user){
+    $("loginView").hidden = true;
+    $("appView").hidden = false;
+    $("whoami").textContent = user && user.email ? user.email : "";
+    await loadHosts();
+  }
+
+  $("loginForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!sb) return;
+    $("loginErr").hidden = true;
+    $("loginBtn").disabled = true;
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: $("liEmail").value.trim(), password: $("liPassword").value
+    });
+    $("loginBtn").disabled = false;
+    if (error) {
+      $("loginErr").hidden = false;
+      $("loginErr").textContent = "Couldn't sign in: " + error.message;
+      return;
+    }
+    if (data && data.user) enterApp(data.user);
+  });
+  $("signOutBtn").addEventListener("click", async () => { if (sb) await sb.auth.signOut(); showLogin(); });
+
+  /* ---------- Password recovery ---------- */
+  let recoveryPending = false;
+  function showSetPassword(){
+    $("appView").hidden = true;
+    $("loginView").hidden = false;
+    $("loginForm").hidden = true;
+    $("pwForm").hidden = false;
+    $("pwErr").hidden = true;
+    setTimeout(() => { const f = $("pwNew"); if (f) f.focus(); }, 50);
+  }
+  $("pwForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!sb) return;
+    const p1 = $("pwNew").value, p2 = $("pwConfirm").value;
+    $("pwErr").hidden = true;
+    if (p1.length < 6) { $("pwErr").hidden = false; $("pwErr").textContent = "Password needs at least 6 characters."; return; }
+    if (p1 !== p2) { $("pwErr").hidden = false; $("pwErr").textContent = "The two passwords don't match — type the same one twice."; return; }
+    $("pwBtn").disabled = true;
+    const { data, error } = await sb.auth.updateUser({ password: p1 });
+    $("pwBtn").disabled = false;
+    if (error) { $("pwErr").hidden = false; $("pwErr").textContent = "Couldn't save: " + error.message; return; }
+    recoveryPending = false;
+    if (window.history && window.history.replaceState) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    $("pwForm").hidden = true;
+    $("loginForm").hidden = false;
+    toast("Password saved — that's your password from now on.");
+    if (data && data.user) enterApp(data.user);
+  });
+
+  /* ---------- Events ---------- */
+  $("addBtn").addEventListener("click", () => openForm(null));
+  $("refreshBtn").addEventListener("click", async () => { await loadHosts(); toast("Refreshed — you're seeing the latest shared data."); });
+
+  $("search").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); render(); });
+  $("companyFilter").addEventListener("change", e => { companyFilter = e.target.value; render(); });
+  document.querySelectorAll("[data-status]").forEach(b => b.addEventListener("click", () => { statusFilter = b.dataset.status; render(); }));
+  document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => { statusFilter = b.dataset.jump; render(); }));
+
+  $("grid").addEventListener("click", e => {
+    const edit = e.target.closest("[data-edit]");
+    if (edit) openForm(hosts.find(h => h.id === edit.dataset.edit));
+  });
+
+  $("form").addEventListener("submit", saveForm);
+  $("deleteBtn").addEventListener("click", deleteHost);
+  document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => closeOverlay(b.closest(".overlay").id)));
+  document.querySelectorAll(".overlay").forEach(o => o.addEventListener("mousedown", e => { if (e.target === o) closeOverlay(o.id); }));
+  document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => closeOverlay(o.id)); });
+
+  $("fHmDeal").addEventListener("change", syncHmAmount);
+  $("fPhotoFile").addEventListener("change", e => {
+    const files = [...(e.target.files || [])];
+    for (const f of files) {
+      if (formPhotos.length >= MAX_PHOTOS) { toast("You already have 3 photos — remove one first."); break; }
+      formPhotos.push({ kind:"new", file:f, url: URL.createObjectURL(f) });
+    }
+    e.target.value = "";
+    renderMediaBox();
+  });
+  $("photoList").addEventListener("click", e => {
+    const b = e.target.closest("[data-rmphoto]");
+    if (b) { formPhotos.splice(+b.dataset.rmphoto, 1); renderMediaBox(); }
+  });
+  $("fVideoFile").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) { formVideo = { kind:"new", file:f, name:f.name }; renderMediaBox(); }
+  });
+
+  /* ---------- Start ---------- */
+  (async function init(){
+    if (!sb) { showLogin(); return; }
+    recoveryPending = /type=recovery/.test(window.location.hash || "");
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) { if (recoveryPending) showSetPassword(); else enterApp(data.session.user); }
+    else showLogin();
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") { recoveryPending = true; showSetPassword(); }
+      else if (event === "SIGNED_OUT") showLogin();
+      else if (event === "SIGNED_IN" && session && $("appView").hidden) { if (recoveryPending) showSetPassword(); else enterApp(session.user); }
+    });
+  })();
+})();
+</script>
+</body>
+</html>
